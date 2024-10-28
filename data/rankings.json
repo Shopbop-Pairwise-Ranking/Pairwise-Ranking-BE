@@ -1,0 +1,40 @@
+{
+  "ShopbopRankings": [
+    {
+      "UserID": "user123",
+      "RankingID": "rank123",
+      "CategoryID": "dresses",
+      "Rankings": {
+        "item456": 1039,
+        "item789": 1000,
+        "item654": 956,
+        "item987": 1000,
+        "item345": 1000,
+        "item234": 1000,
+        "item123": 1005,
+        "item999": 1000,
+        "item888": 1000,
+        "item777": 1000
+      },
+      "Timestamp": "2024-10-28T01:17:12.838Z"
+    },
+    {
+      "UserID": "user456",
+      "RankingID": "rank456",
+      "CategoryID": "dresses",
+      "Rankings": {
+        "item999": 1000,
+        "item234": 1000,
+        "item888": 1000,
+        "item654": 1000,
+        "item987": 1000,
+        "item789": 1000,
+        "item345": 1000,
+        "item456": 1000,
+        "item777": 1000,
+        "item123": 1000
+      },
+      "Timestamp": "2024-10-17T14:00:00Z"
+    }
+  ]
+}
