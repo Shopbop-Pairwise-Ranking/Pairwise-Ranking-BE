@@ -57,34 +57,45 @@ app.post('/submitComparison', (req, res) => {
   }
 
   const data = readData();
-  const userRanking = data.ShopbopRankings.find(
+
+  // Find the user ranking for the given userId and categoryId, if it exists
+  let userRanking = data.ShopbopRankings.find(
     (rank) => rank.UserID === userId && rank.CategoryID === categoryId
   );
 
+  // If user ranking does not exist, create a new one
   if (!userRanking) {
-    return res.status(404).json({ error: 'User ranking not found.' });
+    userRanking = {
+      UserID: userId,
+      CategoryID: categoryId,
+      Rankings: {},
+      Timestamp: new Date().toISOString(),
+    };
+    data.ShopbopRankings.push(userRanking);
   }
 
-
+  // Get current ratings or initialize them to 1000 if they do not exist
   let ratingA = userRanking.Rankings[itemA] || 1000;
   let ratingB = userRanking.Rankings[itemB] || 1000;
 
+  // Calculate new ratings based on the winner
   const result = winner === itemA ? 1 : 0;
   const { newRatingA, newRatingB } = calculateElo(ratingA, ratingB, result);
 
-
+  // Update the ratings in the user's rankings
   userRanking.Rankings[itemA] = newRatingA;
   userRanking.Rankings[itemB] = newRatingB;
   userRanking.Timestamp = new Date().toISOString();
 
+  // Write the updated data back to the file
   writeData(data);
 
   res.status(200).json({
     message: 'Comparison submitted successfully!',
     updatedRatings: {
       [itemA]: newRatingA,
-      [itemB]: newRatingB
-    }
+      [itemB]: newRatingB,
+    },
   });
 });
 
