@@ -4,7 +4,6 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -13,6 +12,9 @@ app.use(bodyParser.json());
 
 const imagesRoutes = require('./routes/images');
 app.use('/api', imagesRoutes);
+
+const authRoutes = require('./routes/authRoute');
+app.use('/api', authRoutes);
 
 const DATA_FILE = path.join(__dirname, 'data', 'rankings.json');
 
