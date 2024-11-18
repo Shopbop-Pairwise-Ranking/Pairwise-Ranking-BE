@@ -1,5 +1,4 @@
 const dynamoDb = require('../config/dynamoDBConfig');
-const bcrypt = require('bcryptjs');
 
 const USERS_TABLE = process.env.USERS_TABLE;
 
@@ -22,7 +21,16 @@ const updateLastLogin = async (email) => {
   await dynamoDb.update(params).promise();
 };
 
+async function addUser(user) {
+  const params = {
+      TableName: USERS_TABLE,
+      Item: user
+  };
+  return await dynamoDb.put(params).promise();
+}
+
 module.exports = {
   getUserByEmail,
-  updateLastLogin
+  updateLastLogin,
+  addUser,
 };
