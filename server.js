@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
+const { signupUser } = require('./routes/signup'); 
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -134,6 +135,20 @@ app.get('/rankings/:categoryId', (req, res) => {
   res.status(200).json({ rankings: averageRankings });
 });
 
+app.post('/api/signup', async (req, res) => {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+        return res.status(400).json({ error: 'Username, email, and password are required' });
+    }
+
+    try {
+        const userId = await signupUser(username, email, password);
+        res.status(201).json({ message: 'User created successfully', userID: userId });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
