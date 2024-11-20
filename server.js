@@ -1,22 +1,14 @@
 require('dotenv').config();
+const dynamoDb = require('./config/dynamoDBConfig');
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const AWS = require('aws-sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
-
-// Configure AWS DynamoDB
-AWS.config.update({
-  region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-});
-const dynamodb = new AWS.DynamoDB.DocumentClient();
 const TABLE_NAME = 'RankingsData';
 
 const imagesRoutes = require('./routes/images');
@@ -44,7 +36,7 @@ const getUserRanking = async (userId, categoryId) => {
     Key: { UserID: userId, CategoryID: categoryId },
   };
   try {
-    const result = await dynamodb.get(params).promise();
+    const result = await dynamoDb.get(params).promise();
     return result.Item || { Rankings: {} };
   } catch (err) {
     console.error('Error fetching user ranking:', err);
@@ -59,7 +51,7 @@ const writeUserRanking = async (userRanking) => {
     Item: userRanking,
   };
   try {
-    await dynamodb.put(params).promise();
+    await dynamoDb.put(params).promise();
   } catch (err) {
     console.error('Error writing user ranking:', err);
   }
@@ -114,7 +106,7 @@ app.get('/rankings/:categoryId', async (req, res) => {
   };
 
   try {
-    const data = await dynamodb.scan(params).promise();
+    const data = await dynamoDb.scan(params).promise();
     const rankings = {};
     const counts = {};
 
