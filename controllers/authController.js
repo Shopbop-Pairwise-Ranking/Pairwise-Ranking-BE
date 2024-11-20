@@ -25,7 +25,8 @@ const login = async (req, res) => {
     await updateLastLogin(email);
     const token = generateToken(user.email);
 
-    return res.json({ token });
+
+    return res.json({ token, userId: user.userID });
 
   } catch (error) {
     console.error('Error logging in:', error);
