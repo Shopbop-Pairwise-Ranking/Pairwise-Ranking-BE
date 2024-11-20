@@ -1,14 +1,23 @@
-require('dotenv').config(); 
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const fs = require('fs');
-const path = require('path');
+const AWS = require('aws-sdk');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
+
+// Configure AWS DynamoDB
+AWS.config.update({
+  region: process.env.AWS_REGION,
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
+const dynamodb = new AWS.DynamoDB.DocumentClient();
+const TABLE_NAME = 'RankingsData';
 
 const imagesRoutes = require('./routes/images');
 app.use('/api', imagesRoutes);
@@ -16,11 +25,9 @@ app.use('/api', imagesRoutes);
 const authRoutes = require('./routes/authRoute');
 app.use('/api', authRoutes);
 
-const DATA_FILE = path.join(__dirname, 'data', 'rankings.json');
-
 // ELO rating function
 const calculateElo = (ratingA, ratingB, result) => {
-  const K = 32; // ELO adjustment factor
+  const K = 32;
   const expectedScoreA = 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
   const expectedScoreB = 1 - expectedScoreA;
 
@@ -30,53 +37,49 @@ const calculateElo = (ratingA, ratingB, result) => {
   return { newRatingA, newRatingB };
 };
 
-// Function to read data from JSON file
-const readData = () => {
+// Function to get user ranking from DynamoDB
+const getUserRanking = async (userId, categoryId) => {
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { UserID: userId, CategoryID: categoryId },
+  };
   try {
-    const data = fs.readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(data);
+    const result = await dynamodb.get(params).promise();
+    return result.Item || { Rankings: {} };
   } catch (err) {
-    console.error('Error reading data:', err);
-    return { ShopbopRankings: [] };
+    console.error('Error fetching user ranking:', err);
+    return null;
   }
 };
 
-// Function to write data to JSON file
-const writeData = (data) => {
+// Function to write user ranking to DynamoDB
+const writeUserRanking = async (userRanking) => {
+  const params = {
+    TableName: TABLE_NAME,
+    Item: userRanking,
+  };
   try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    await dynamodb.put(params).promise();
   } catch (err) {
-    console.error('Error writing data:', err);
+    console.error('Error writing user ranking:', err);
   }
 };
 
 // POST API for comparisons
-app.post('/submitComparison', (req, res) => {
+app.post('/submitComparison', async (req, res) => {
   const { userId, categoryId, itemA, itemB, winner } = req.body;
 
   if (!userId || !categoryId || !itemA || !itemB || !winner) {
     return res.status(400).json({ error: 'Missing required fields.' });
   }
 
-  const data = readData();
+  // Get existing user ranking from DynamoDB
+  let userRanking = await getUserRanking(userId, categoryId);
+  userRanking.UserID = userId;
+  userRanking.CategoryID = categoryId;
+  userRanking.Timestamp = new Date().toISOString();
 
-  // Find the user ranking for the given userId and categoryId, if it exists
-  let userRanking = data.ShopbopRankings.find(
-    (rank) => rank.UserID === userId && rank.CategoryID === categoryId
-  );
-
-  // If user ranking does not exist, create a new one
-  if (!userRanking) {
-    userRanking = {
-      UserID: userId,
-      CategoryID: categoryId,
-      Rankings: {},
-      Timestamp: new Date().toISOString(),
-    };
-    data.ShopbopRankings.push(userRanking);
-  }
-
-  // Get current ratings or initialize them to 1000 if they do not exist
+  // Get current ratings or initialize to 1000
   let ratingA = userRanking.Rankings[itemA] || 1000;
   let ratingB = userRanking.Rankings[itemB] || 1000;
 
@@ -84,13 +87,12 @@ app.post('/submitComparison', (req, res) => {
   const result = winner === itemA ? 1 : 0;
   const { newRatingA, newRatingB } = calculateElo(ratingA, ratingB, result);
 
-  // Update the ratings in the user's rankings
+  // Update the ratings
   userRanking.Rankings[itemA] = newRatingA;
   userRanking.Rankings[itemB] = newRatingB;
-  userRanking.Timestamp = new Date().toISOString();
 
-  // Write the updated data back to the file
-  writeData(data);
+  // Write updated ranking back to DynamoDB
+  await writeUserRanking(userRanking);
 
   res.status(200).json({
     message: 'Comparison submitted successfully!',
@@ -102,36 +104,45 @@ app.post('/submitComparison', (req, res) => {
 });
 
 // Endpoint to get average rankings for a category
-app.get('/rankings/:categoryId', (req, res) => {
+app.get('/rankings/:categoryId', async (req, res) => {
   const { categoryId } = req.params;
 
-  const data = readData(); // Read the JSON file with all rankings
-  const rankings = {};  // To accumulate scores
-  const counts = {};    // To track how many users ranked each item
+  const params = {
+    TableName: TABLE_NAME,
+    FilterExpression: 'CategoryID = :categoryId',
+    ExpressionAttributeValues: { ':categoryId': categoryId },
+  };
 
-  data.ShopbopRankings
-    .filter((rank) => rank.CategoryID === categoryId)
-    .forEach((rank) => {
+  try {
+    const data = await dynamodb.scan(params).promise();
+    const rankings = {};
+    const counts = {};
+
+    data.Items.forEach((rank) => {
       for (const [itemId, score] of Object.entries(rank.Rankings)) {
         if (!rankings[itemId]) {
           rankings[itemId] = score;
-          counts[itemId] = 1; 
+          counts[itemId] = 1;
         } else {
-          rankings[itemId] += score; 
-          counts[itemId] += 1; 
+          rankings[itemId] += score;
+          counts[itemId] += 1;
         }
       }
     });
 
-  // Calculate the average score for each item
-  const averageRankings = Object.entries(rankings)
-    .map(([itemId, totalScore]) => {
-      const averageScore = totalScore / counts[itemId];
-      return { ItemID: itemId, AverageScore: averageScore };
-    })
-    .sort((a, b) => b.AverageScore - a.AverageScore);
+    // Calculate the average score for each item
+    const averageRankings = Object.entries(rankings)
+      .map(([itemId, totalScore]) => ({
+        ItemID: itemId,
+        AverageScore: totalScore / counts[itemId],
+      }))
+      .sort((a, b) => b.AverageScore - a.AverageScore);
 
-  res.status(200).json({ rankings: averageRankings });
+    res.status(200).json({ rankings: averageRankings });
+  } catch (err) {
+    console.error('Error fetching rankings:', err);
+    res.status(500).json({ error: 'Could not retrieve rankings' });
+  }
 });
 
 app.listen(PORT, () => {
