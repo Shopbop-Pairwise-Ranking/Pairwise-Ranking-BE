@@ -1,4 +1,4 @@
-const dynamoDb = require('../config/dynamoDBConfig');
+const dynamoDB = require('../config/dynamoDBConfig');
 
 const USERS_TABLE = process.env.USERS_TABLE;
 
@@ -7,7 +7,7 @@ const getUserByEmail = async (email) => {
     TableName: USERS_TABLE,
     Key: { email }
   };
-  const result = await dynamoDb.get(params).promise();
+  const result = await dynamoDB.get(params).promise();
   return result.Item;
 };
 
@@ -18,7 +18,7 @@ const updateLastLogin = async (email) => {
     UpdateExpression: 'set lastLogin = :lastLogin',
     ExpressionAttributeValues: { ':lastLogin': new Date().toISOString() }
   };
-  await dynamoDb.update(params).promise();
+  await dynamoDB.update(params).promise();
 };
 
 async function addUser(user) {
@@ -26,7 +26,7 @@ async function addUser(user) {
       TableName: USERS_TABLE,
       Item: user
   };
-  return await dynamoDb.put(params).promise();
+  return await dynamoDB.put(params).promise();
 }
 
 module.exports = {
