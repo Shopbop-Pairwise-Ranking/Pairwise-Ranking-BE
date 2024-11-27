@@ -94,7 +94,7 @@ async function getRecommendations(req, res) {
     }
     catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Failed to recommdendations' });
+        res.status(500).json({ error: 'Failed to recommend products at the moment.' });
     }
 
 }
