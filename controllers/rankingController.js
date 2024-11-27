@@ -9,7 +9,6 @@ async function updateRanking(req, res) {
     if (!userId || !categoryId || !matchups || !rankings) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
-    console.log(matchups, rankings)
     if (!matchups.length || !Object.keys(rankings).length || (matchups.length * 2) !== Object.keys(rankings).length) {
         return res.status(400).json({ error: 'No. of rankings does not match the items provided' });
     }

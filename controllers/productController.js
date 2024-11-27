@@ -4,7 +4,6 @@ const Products = require("../models/productsModel");
 async function getProducts(req, res) {
   try {
     const { category, userId, gender } = req.query;
-    console.log(category, userId, gender)
 
     if (!category || !userId || !gender) {
       return res
@@ -15,7 +14,6 @@ async function getProducts(req, res) {
     }
 
     const userRankings = await Rankings.getUserRankingsByCategory(userId, category);
-    console.log(userRankings)
     const rankedProductIds = new Set();
 
     if (userRankings && userRankings.rankings) {
