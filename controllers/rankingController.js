@@ -26,15 +26,13 @@ async function updateRanking(req, res) {
         for(const matchup of matchups) {
             const { itemA, itemB, winner } = matchup;
 
-            const productA = products.find(p => p.productSin === itemA) || { eloRating: 1000 };
-            const productB = products.find(p => p.productSin === itemB) || { eloRating: 1000 };
-
-            const ratingA = productA.eloRating;
-            const ratingB = productB.eloRating;
+            const productA = products.find(p => p.productSin === itemA);
+            const productB = products.find(p => p.productSin === itemB);
+            const ratingA = productA?.eloRating || 1000;
+            const ratingB = productB?.eloRating || 1000;
 
             const result = winner === itemA ? 1 : 0;
             const { newRatingA, newRatingB } = calculateElo(ratingA, ratingB, result);
-
             await Promise.all([
                 Products.updateProductRating(itemA, newRatingA, winner === itemA),
                 Products.updateProductRating(itemB, newRatingB, winner === itemB)
@@ -48,4 +46,57 @@ async function updateRanking(req, res) {
     }
 }
 
-module.exports = { updateRanking };
+async function getLatestRankings(req, res) {
+    const { userId, categoryId } = req.query;
+    if (!userId || !categoryId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const latestRanking = await Rankings.getLatestRanking(userId, categoryId);
+        if (!latestRanking?.ranks) {
+            return res.status(200).json({message: 'userId does not exist'})
+        }
+
+        if (!latestRanking?.recommendations) {
+            latestRanking.recommendations = [];
+        }
+        if (latestRanking.recommendations.length) {
+            const recommendedProductIds = latestRanking.recommendations;
+            latestRanking.recommendations = await Products.getProducts(recommendedProductIds);
+        }
+
+        const productIds = Object.keys(latestRanking.ranks);
+        const products = await Products.getProducts(productIds);
+        latestRanking.products = products;
+        res.json(latestRanking);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch latest ranking' });
+    }
+
+}
+
+async function getRecommendations(req, res) {
+    const { userId, categoryId, lastestRankingId } = req.query;
+    if (!userId || !categoryId) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const recommendedProductIds = await Rankings.getRecommendations(userId, categoryId, lastestRankingId);
+        if (!recommendedProductIds.length) {
+            return res.status(200).json([])
+        }
+        const products = await Products.getProducts(recommendedProductIds);
+        res.json(products);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to recommdendations' });
+    }
+
+}
+
+module.exports = { updateRanking, getLatestRankings, getRecommendations };
