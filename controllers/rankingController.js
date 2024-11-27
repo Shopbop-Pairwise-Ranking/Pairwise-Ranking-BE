@@ -22,7 +22,7 @@ async function updateRanking(req, res) {
             productIds.push(itemA, itemB);
         });
         const uniqueProductIds = [...new Set(productIds)];
-        const products = await Products.fetchProductData(uniqueProductIds);
+        const products = await Products.getProducts(uniqueProductIds);
 
         for(const matchup of matchups) {
             const { itemA, itemB, winner } = matchup;

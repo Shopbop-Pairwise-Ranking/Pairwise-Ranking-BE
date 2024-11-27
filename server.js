@@ -9,15 +9,9 @@ const API_BASE = '/api';
 
 app.use(cors());
 app.use(bodyParser.json());
-
-const imagesRoutes = require('./routes/images');
-app.use(API_BASE, imagesRoutes);
-
-const authRoutes = require('./routes/authRoute');
-app.use(API_BASE, authRoutes);
-
-const rankingRoutes = require('./routes/rankingRoute');
-app.use(API_BASE, rankingRoutes);
+app.use(API_BASE, require('./routes/authRoute'));
+app.use(API_BASE, require('./routes/rankingRoute'));
+app.use(API_BASE, require('./routes/productRoute'));
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

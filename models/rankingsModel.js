@@ -57,6 +57,17 @@ class Rankings {
 
         return rankingId;
     }
+
+    static async getUserRankingsByCategory(userId, categoryId) {
+
+        const params = {
+          TableName: RANKINGS_TABLE,
+          Key: { userId, categoryId },
+        };
+
+        const result = await dynamoDB.get(params).promise();
+        return result.Item || null;
+      }
 }
 
 module.exports = Rankings;

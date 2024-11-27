@@ -2,7 +2,7 @@ const dynamoDB = require('../config/dynamoDBConfig');
 const PRODUCTS_TABLE = process.env.PRODUCTS_TABLE;
 
 class Products {
-    static async fetchProductData(productIds) {
+    static async getProducts(productIds) {
         const params = {
             RequestItems: {
                 [PRODUCTS_TABLE]: {
@@ -13,6 +13,20 @@ class Products {
         const result = await dynamoDB.batchGet(params).promise();
         return result.Responses[PRODUCTS_TABLE] || [];
     }
+
+   static async getProductsByCateogryAndGender(category, gender) {
+        const params = {
+          TableName: PRODUCTS_TABLE,
+          FilterExpression: 'categoryID = :category AND gender = :gender',
+          ExpressionAttributeValues: {
+            ':category': category,
+            ':gender': gender.toUpperCase(),
+          },
+        };
+
+        const result = await dynamoDB.scan(params).promise();
+        return result.Items || [];
+      }
 
     static async updateProductRating(productSin, newEloRating, isWinner) {
         const updateExpressionParts = [
