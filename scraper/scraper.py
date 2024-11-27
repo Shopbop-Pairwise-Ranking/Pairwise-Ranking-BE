@@ -76,7 +76,6 @@ def decimal_to_json_serializable(obj):
         return float(obj)
     raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
 
-
 def save_to_json(data, filename):
     folder = 'product_data'
     os.makedirs(folder, exist_ok=True)
@@ -87,16 +86,19 @@ def save_to_json(data, filename):
 
     print(f"Data saved to {filepath}")
 
-def scrape_category(category, total_records=1000):
+def scrape_category(category):
     limit = 100
     offset = 0
     scraped_data = []
 
     print(f"Starting to scrape category: {category}")
+    initial_response = fetch_shopbop_data(category, limit, offset)
+    total_records = initial_response.get("totalResults", 1000)
+
+    print(f"Total records to fetch for category '{category}': {total_records}")
 
     while len(scraped_data) < total_records:
         response_data = fetch_shopbop_data(category, limit, offset)
-
         products = response_data.get("products", [])
         if not products:
             print(f"No more products found for category {category}.")
@@ -118,9 +120,8 @@ def scrape_category(category, total_records=1000):
 
 if __name__ == "__main__":
     categories = ["jeans", "skirts", "jackets", "dresses"]
-    total_records_per_category = 1000
 
     for category in categories:
-        scrape_category(category, total_records_per_category)
+        scrape_category(category)
 
     print("Scraping, saving to database, and JSON file process completed for all categories.")
