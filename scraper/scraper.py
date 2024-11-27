@@ -77,13 +77,12 @@ def decimal_to_json_serializable(obj):
     raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
 
 def save_to_json(data, filename):
-    folder = 'product_data'
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    folder = os.path.join(script_dir, 'products_data')
     os.makedirs(folder, exist_ok=True)
     filepath = os.path.join(folder, filename)
-
     with open(filepath, "w", encoding="utf-8") as json_file:
         json.dump(data, json_file, indent=4, ensure_ascii=False, default=decimal_to_json_serializable)
-
     print(f"Data saved to {filepath}")
 
 def scrape_category(category):
