@@ -12,6 +12,7 @@ app.use(bodyParser.json());
 app.use(API_BASE, require('./routes/authRoute'));
 app.use(API_BASE, require('./routes/rankingRoute'));
 app.use(API_BASE, require('./routes/productRoute'));
+app.use(API_BASE, require('./routes/trendingRoute'));
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
