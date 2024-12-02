@@ -6,17 +6,15 @@ async function getTrendingByCategory(req, res) {
     if (!categoryId) {
         return res.status(400).json({ error: 'Missing category ID' });
     }
-
     try {
-        const trendingProducts = await Trending.getTrendingByCategory(categoryId);
-        console.log(trendingProducts);
-        if (!Object.keys(trendingProducts).length) {
-            return res.status(200).json([])
+        const trendingRunInfo = await Trending.getTrendingByCategory(categoryId);
+        if (trendingRunInfo?.ranks?.length) {
+            return res.status(200).json({})
         }
 
-        const products = await Products.getProducts(Object.keys(trendingProducts));
-        products.map((product) => product['rank'] = trendingProducts[product.productSin]);
-        res.json(products);
+        const products = await Products.getProducts(Object.keys(trendingRunInfo.ranks));
+        products.map((product) => product['rank'] = trendingRunInfo.ranks[product.productSin]);
+        res.json({ products, timestamp: trendingRunInfo?.timestamp || new Date().toISOString() });
     }
     catch (error) {
         console.error(error);
