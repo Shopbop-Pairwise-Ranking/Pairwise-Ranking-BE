@@ -1,6 +1,7 @@
 const Rankings = require('../models/rankingsModel');
 const Products = require('../models/productsModel');
 const { calculateElo } = require('../utils/helper');
+const calculateAndSaveRecommendations = require('./recommendationController');
 
 async function updateRanking(req, res) {
     const { userId, categoryId } = req.params;
@@ -38,7 +39,7 @@ async function updateRanking(req, res) {
                 Products.updateProductRating(itemB, newRatingB, winner === itemB)
             ]);
         }
-        // Trigger recommendation engine
+        calculateAndSaveRecommendations(userId, categoryId, rankingId);
         res.status(200).json({ message: 'Rankings and products updated successfully', rankingId });
     } catch (error) {
         console.error(error);
